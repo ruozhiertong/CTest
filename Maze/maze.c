@@ -247,7 +247,7 @@ int peekStack(Stack * stack, Node *node)
     return 0;
 }
 
-int g_Maze[ROW][COL] = {1}; // 0 为墙。
+int g_Maze[ROW][COL] = {1}; // 0 为墙。 只对第一个元素初始化。其余的是默认初始化值的。要想全部赋值初始化就要全部元素进行赋值。
 
 int visit[ROW][COL] = {0};
 
@@ -256,11 +256,13 @@ Node inNode;
 Node outNode;
 
 Node visitNode[COL*ROW];
+Node parenNode[ROW][COL] = {{0,-1,-1, 0}}; //只对第一个元素初始化，其余的默认初始化。//用于在BFS中保存父节点。
 int step = 0;
 
 
 void clearVisit()
 {
+	//二维数组。
 	memset(visit , 0 , sizeof(int)*COL*ROW);
 }
 
@@ -277,7 +279,7 @@ void printMaze()
 				printf("%-2d", g_Maze[i][j]);
 				printf("\033[m"); //重置。
 			}
-			else if(g_Maze[i][j] == 3)
+			else if(g_Maze[i][j] == 3 || g_Maze[i][j] == 4)
 			{
 				printf("\033[41m"); //设置字体颜色。
 				printf("%-2d", g_Maze[i][j]);
@@ -289,14 +291,63 @@ void printMaze()
 	}
 }
 
+void printVisited()
+{
+	system("clear");
+	for(int i = 0; i < ROW; i++)
+	{
+		for(int j = 0; j < COL ; j++)
+		{
+			if(visit[i][j] == 2)
+				g_Maze[i][j] = 3;
+
+		}
+	}
+
+	printMaze();
+
+	for(int i = 0; i < ROW; i++)
+	{
+		for(int j = 0; j < COL ; j++)
+		{
+			if(visit[i][j] == 2)
+				g_Maze[i][j] = 1;
+
+		}
+	}
+	usleep(1000*100);
+}
+
 void printPath()
 {
-	printf("step:%d %d %d\n",step, visitNode[0].x, visitNode[0].y);
+	//printf("step:%d %d %d\n",step, visitNode[0].x, visitNode[0].y);
 	system("clear");
 	for(int i = 0; i < step; i++)
 	{
 		g_Maze[visitNode[i].x][visitNode[i].y] = 3;
 	}
+
+	printMaze();
+
+	for(int i = 0; i < step; i++)
+	{
+		g_Maze[visitNode[i].x][visitNode[i].y] = 1;
+	}
+	usleep(1000*100);
+
+}
+
+void printBFSPath()
+{
+	system("clear");
+	
+	Node node = outNode;
+	while(!(parenNode[node.x][node.y].x == -1 && parenNode[node.x][node.y].y == -1))
+	{
+		g_Maze[node.x][node.y] = 4;
+		node = parenNode[node.x][node.y];
+	}
+	g_Maze[node.x][node.y] = 4;
 
 	printMaze();
 }
@@ -402,11 +453,68 @@ void creatMaze()
 	}
 }
 
-//广度优先遍历。（非递归）（利用队列）
+//广度优先遍历。（非递归）（利用队列）。
+//难点：如何记录路径。 ==》解决。保存其 在遍历时 的前驱/父节点(遍历时其在遍历时的前驱节点是唯一的)，从而记录整个路径。
 void BFS(Node node)
 {
+	Queue queue;
+	initQueue(&queue);
+
+	visit[node.x][node.y] = 2;
+	printVisited();
+	EnQueue(&queue, node);
+
+	Node nextNode , firstNode;
+	while(isEmptyQueue(&queue) != 1)
+	{
+		DeQueue(&queue, &firstNode);
+
+		if(firstNode.x == outNode.x && firstNode.y == outNode.y)
+		{
+			printf("BFS寻路成功\n");
+			system("clear");
+			//printBFSPath();
+			break;
+		}
+
+		for(int i = 0; i < 4; i++)
+		{
+			switch(i)
+			{
+				case 0:
+				nextNode.x = firstNode.x;
+				nextNode.y = firstNode.y + 1;
+				break;
+				case 1:
+				nextNode.x = firstNode.x - 1;
+				nextNode.y = firstNode.y;
+				break;
+				case 2:
+				nextNode.x = firstNode.x;
+				nextNode.y = firstNode.y - 1;
+				break;
+				case 3:
+				nextNode.x = firstNode.x + 1;
+				nextNode.y = firstNode.y;
+				break;
+			}
+			if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
+				continue;
+
+			if(visit[nextNode.x][nextNode.y] == 2)
+				continue;
+
+			if(g_Maze[nextNode.x][nextNode.y] == 0)
+				continue;
+
+			visit[nextNode.x][nextNode.y] = 2;
+			printVisited();
+			parenNode[nextNode.x][nextNode.y] = firstNode;
+			EnQueue(&queue, nextNode);
 
 
+		}
+	}
 }
 
 //深度优先遍历。（非递归）(利用栈)
@@ -428,6 +536,7 @@ void DFS(Node node)
 		{
 			popStack(&stack, NULL);
 			step--;
+			printPath();
 			continue;
 		}
 
@@ -435,9 +544,11 @@ void DFS(Node node)
 		if(!(visitNode[step-1].x == topNode.x && visitNode[step-1].y == topNode.y))
 			visitNode[step++] = topNode;
 		
+		printPath();
+
 		if(topNode.x == outNode.x && topNode.y == outNode.y)
 		{
-			printf("寻路成功\n");
+			printf("DFS寻路成功\n");
 			system("clear");
 			//printPath();
 			break;
@@ -483,6 +594,7 @@ void DFS(Node node)
 		{
 			popStack(&stack, NULL);
 			step--;
+			printPath();
 		}
 	}
 }
@@ -492,12 +604,14 @@ int DFS2(Node node)
 {
 	visitNode[step++] = node;
 	visit[node.x][node.y] = 2;
+	printPath();
+
 
 	//printf("node:x %d, y %d\n", node.x, node.y);
 
 	if(node.x == outNode.x && node.y == outNode.y)
 	{
-		printf("寻路成功\n");
+		printf("DFS2寻路成功\n");
 		system("clear");
 		//printPath();
 		return 0;
@@ -539,6 +653,8 @@ int DFS2(Node node)
 		if(DFS2(nextNode) != 0) //不成功
 		{
 			step--; //回退
+			printPath();
+
 		}
 		else
 		{
@@ -554,22 +670,42 @@ int DFS2(Node node)
 }
 
 
-//(x^2+y^2−1)^3−x^2 y^3=0
 int main()
 {
-	hideCursor();
-	system("clear");
-	srand((int)time(NULL));
-	initMaze();
-	printMaze();
+	//初始化。
+	Node node;
+	node.x = -1;
+	node.y = -1;
+	//memset 一般用于 清空的初始化，不用于赋值的初始化。
+	//memset(parenNode , node , sizeof(Node)*COL*ROW);
+	//乖乖的循环初始化。
+	for(int i = 0; i < ROW -1; i++)
+	{
+		for (int j = 0; j < COL -1; j++)
+		{
+			parenNode[i][j] = node; //可以直接赋值。 不行的话，直接用memcpy。
+			g_Maze[i][j] = 1;
+		}
+	}
+	
+	 hideCursor();
+	 system("clear");
+	 srand((int)time(NULL));
+	 initMaze();
+	 creatMaze();
+	 
 
-	creatMaze();
-	clearVisit();
-	DFS(inNode);
-	printPath();
-	clearVisit();
-	DFS2(inNode);
-	printPath();
+	 clearVisit();
+	 DFS2(inNode);
+	 printPath();
+	// clearVisit();
+	// DFS2(inNode);
+	// printPath();
+
+	 clearVisit();
+	 BFS(inNode);
+	 printBFSPath();
+
 
 	/*
 	for(int i = 0; i< HEIGHT; i++)
