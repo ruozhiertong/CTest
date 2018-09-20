@@ -1,9 +1,38 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
 
 #define COL	41//11//41
 #define ROW	21// 7//21
 #define NODEMAXNUM	1000 //90//
+
+
+void gotoxy(int x, int y)
+{
+	#if (defined _WIN32) || (defined WIN32)
+		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		COORD pos;
+		pos.X = x;
+		pos.Y = y;
+		SetConsoleCursorPosition(handle, pos);
+	#else
+			printf("\033[%d;%dH",y, x);
+	#endif
+}
+void hideCursor()
+{
+	#if (defined _WIN32) || (defined WIN32)
+		CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
+		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
+	#else
+		printf("\033[?25l");
+	#endif
+}
+
+
+
 
 typedef struct Node {
 	int type; // 0 通路， 1 墙.
@@ -36,28 +65,11 @@ typedef struct Queue{
 	*/  
 }Queue;
 
-void gotoxy(int x, int y)
-{
-	#if (defined _WIN32) || (defined WIN32)
-		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-		COORD pos;
-		pos.X = x;
-		pos.Y = y;
-		SetConsoleCursorPosition(handle, pos);
-	#else
-			printf("\033[%d;%dH",y, x);
-	#endif
-}
-void hideCursor()
-{
-	#if (defined _WIN32) || (defined WIN32)
-		CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
-		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
-	#else
-		printf("\033[?25l");
-	#endif
-}
-
+typedef struct Stack{
+	int size; //只使用top也能知道size。
+	Node *nodeArr; //数组形式存储。 栈。
+	int top;
+}Stack;
 
 void initQueue(Queue * queue)
 {
@@ -134,7 +146,7 @@ int EnQueue(Queue* queue, Node node)
 	queue->nodeArr[queue->rear] = node;
 	
 	queue->size = queue->size + 1;
-
+    return 0;
 }
 //出队。从队首出队。 像排队一样。
 int DeQueue(Queue* queue, Node* node)
@@ -148,7 +160,7 @@ int DeQueue(Queue* queue, Node* node)
 	*node = queue->nodeArr[queue->front];
 	queue->front = (queue->front + 1) % NODEMAXNUM;
 	queue->size = queue->size - 1;
-
+    return 0;
 }
 
 //随机出队。
@@ -164,6 +176,75 @@ int RandDeQueue(Queue* queue, Node* node)
 	queue->nodeArr[randIdx] = queue->nodeArr[queue->front];
 	queue->front = (queue->front + 1) % NODEMAXNUM;
 	queue->size = queue->size - 1;
+    return 0;
+}
+
+
+void initStack(Stack *stack)
+{
+	stack->nodeArr = (Node*)malloc(NODEMAXNUM * sizeof(Node));
+	stack->size = 0;
+	stack->top = -1; //指向最后元素的位置。
+}
+
+int isEmptyStack(Stack * stack)
+{
+	if(stack->size == 0)
+		return 1;
+	else
+		return 0;
+}
+
+int isFullStack(Stack * stack)
+{
+	if(stack->size ==  NODEMAXNUM)
+		return 1;
+	else
+		return 0;
+
+}
+
+int getStackLen(Stack *stack)
+{
+	return stack->size;
+}
+
+//入栈。
+int pushStack(Stack* stack, Node node)
+{
+	if(isFullStack(stack))
+	{
+		printf("stack is full\n");
+		return -1;
+	}
+	stack->nodeArr[++stack->top] = node;
+	stack->size++;
+    return 0;
+}
+//出栈
+int popStack(Stack* stack, Node* node)
+{
+	if(isEmptyStack(stack))
+	{
+		printf("Stack is empty\n");
+		return -1;
+	}
+	if(node != NULL) //空指针。 无法给空指针指向的地址赋值。
+		*node = stack->nodeArr[stack->top--];
+	else
+		stack->top--;
+	stack->size--;
+    return 0;
+}
+int peekStack(Stack * stack, Node *node)
+{
+	if(isEmptyStack(stack))
+	{
+		printf("Stack is empty\n");
+		return -1;
+	}
+	*node = stack->nodeArr[stack->top];
+    return 0;
 }
 
 int g_Maze[ROW][COL] = {1}; // 0 为墙。
@@ -321,14 +402,93 @@ void creatMaze()
 	}
 }
 
-//广度优先遍历。
-void BFS()
+//广度优先遍历。（非递归）（利用队列）
+void BFS(Node node)
 {
 
 
 }
-//深度优先遍历。(递归)
+
+//深度优先遍历。（非递归）(利用栈)
 void DFS(Node node)
+{
+	Stack stack;
+	initStack(&stack);
+	visit[node.x][node.y] = 2;
+	pushStack(&stack, node);
+
+	Node topNode;
+
+	while(isEmptyStack(&stack) != 1)
+	{
+		peekStack(&stack, &topNode);
+
+		//回退时，重新添加已添加过的节点。
+		if(visitNode[step-1].x == topNode.x && visitNode[step-1].y == topNode.y)
+		{
+			popStack(&stack, NULL);
+			step--;
+			continue;
+		}
+
+		//避免已经添加过的节点再添加。 上面的if判断处理过了。
+		if(!(visitNode[step-1].x == topNode.x && visitNode[step-1].y == topNode.y))
+			visitNode[step++] = topNode;
+		
+		if(topNode.x == outNode.x && topNode.y == outNode.y)
+		{
+			printf("寻路成功\n");
+			system("clear");
+			//printPath();
+			break;
+		}
+
+		Node nextNode;
+		int flag = 0;
+		for(int i = 0; i < 4; i++)
+		{
+			switch(i)
+			{
+				case 0:
+				nextNode.x = topNode.x;
+				nextNode.y = topNode.y + 1;
+				break;
+				case 1:
+				nextNode.x = topNode.x - 1;
+				nextNode.y = topNode.y;
+				break;
+				case 2:
+				nextNode.x = topNode.x;
+				nextNode.y = topNode.y - 1;
+				break;
+				case 3:
+				nextNode.x = topNode.x + 1;
+				nextNode.y = topNode.y;
+				break;
+			}
+			if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
+				continue;
+
+			if(visit[nextNode.x][nextNode.y] == 2)
+				continue;
+
+			if(g_Maze[nextNode.x][nextNode.y] == 0)
+				continue;
+
+			visit[nextNode.x][nextNode.y] = 2;
+			flag = 1;
+			pushStack(&stack, nextNode);
+		}
+		if(flag == 0)//没有周围的节点。 回溯。
+		{
+			popStack(&stack, NULL);
+			step--;
+		}
+	}
+}
+//深度优先遍历。(递归)
+//0成功，-1失败
+int DFS2(Node node)
 {
 	visitNode[step++] = node;
 	visit[node.x][node.y] = 2;
@@ -339,12 +499,13 @@ void DFS(Node node)
 	{
 		printf("寻路成功\n");
 		system("clear");
-		printPath();
-		return;
+		//printPath();
+		return 0;
 	}
 
 
-	Node nextNode;	
+	Node nextNode;
+	int flag = 0;
 	for(int i = 0; i < 4; i++)
 	{
 		switch(i)
@@ -375,9 +536,21 @@ void DFS(Node node)
 		if(g_Maze[nextNode.x][nextNode.y] == 0)
 			continue;
 
-		DFS(nextNode);
-		step--;
+		if(DFS2(nextNode) != 0) //不成功
+		{
+			step--; //回退
+		}
+		else
+		{
+			flag = 1;
+			break;
+		}
 	}
+
+	if(flag == 1)
+		return 0;
+	else
+		return -1;
 }
 
 
@@ -393,9 +566,10 @@ int main()
 	creatMaze();
 	clearVisit();
 	DFS(inNode);
-	//printPath();
-
-
+	printPath();
+	clearVisit();
+	DFS2(inNode);
+	printPath();
 
 	/*
 	for(int i = 0; i< HEIGHT; i++)
