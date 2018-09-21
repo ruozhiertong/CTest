@@ -3,73 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-
-#define COL	41//11//41
-#define ROW	21// 7//21
-#define NODEMAXNUM	1000 //90//
-
-
-void gotoxy(int x, int y)
-{
-	#if (defined _WIN32) || (defined WIN32)
-		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-		COORD pos;
-		pos.X = x;
-		pos.Y = y;
-		SetConsoleCursorPosition(handle, pos);
-	#else
-			printf("\033[%d;%dH",y, x);
-	#endif
-}
-void hideCursor()
-{
-	#if (defined _WIN32) || (defined WIN32)
-		CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
-		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
-	#else
-		printf("\033[?25l");
-	#endif
-}
-
-
-
-
-typedef struct Node {
-	int type; // 0 通路， 1 墙.
-	int x;
-	int y;
-	int used; //使用过. 0 未入队。 1 在队中。 2 出队了，使用过
-}Node;
-
-
-//循环队列
-typedef struct Queue{
-	int size;
-	Node * nodeArr; //数组形式存储队列。
-	int front;//指向刚放置到队列中的位置。队列内。
-	int rear; //指向未使用过的位置。队列内。初始化-1
-	//front rear指向队列外，或者队列内的，或者一个队列内一个队列外，不同的指向，对于出队入队是有区别的。
-	/*
-       ---------------
-		   1 5 4 3
-       ---------------
-	       ^     ^ 
-	  front rear 都指向队列内的。 入队rear++; nodeArr[rear];	出队nodeArr[front]; front++;
-
-	   ---------------
-		   1 5 4 3
-       ---------------
-	      ^       ^ 
- 	  front rear 都指向队列外的。入队nodeArr[rear];rear++; 	出队front++;nodeArr[front];
-
-	*/  
-}Queue;
-
-typedef struct Stack{
-	int size; //只使用top也能知道size。
-	Node *nodeArr; //数组形式存储。 栈。
-	int top;
-}Stack;
+#include "maze.h"
 
 void initQueue(Queue * queue)
 {
@@ -247,23 +181,40 @@ int peekStack(Stack * stack, Node *node)
     return 0;
 }
 
-int g_Maze[ROW][COL] = {1}; // 0 为墙。 只对第一个元素初始化。其余的是默认初始化值的。要想全部赋值初始化就要全部元素进行赋值。
-
-int visit[ROW][COL] = {0};
-
-//迷宫出入口
-Node inNode;
-Node outNode;
-
-Node visitNode[COL*ROW];
-Node parenNode[ROW][COL] = {{0,-1,-1, 0}}; //只对第一个元素初始化，其余的默认初始化。//用于在BFS中保存父节点。
-int step = 0;
-
+void gotoxy(int x, int y)
+{
+	#if (defined _WIN32) || (defined WIN32)
+		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		COORD pos;
+		pos.X = x;
+		pos.Y = y;
+		SetConsoleCursorPosition(handle, pos);
+	#else
+			printf("\033[%d;%dH",y, x);
+	#endif
+}
+void hideCursor()
+{
+	#if (defined _WIN32) || (defined WIN32)
+		CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
+		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
+	#else
+		printf("\033[?25l");
+	#endif
+}
 
 void clearVisit()
 {
+	
+	for(int i = 0; i < ROW; i++)
+	{
+		for (int j = 0; j < COL; j++)
+		{
+			g_Maze[i][j].visited = 0;
+		}
+	}
 	//二维数组。
-	memset(visit , 0 , sizeof(int)*COL*ROW);
+	//memset(visit , 0 , sizeof(int)*COL*ROW);
 }
 
 void printMaze()
@@ -273,19 +224,19 @@ void printMaze()
 	{
 		for(int j = 0; j< COL; j++)
 		{
-			if(g_Maze[i][j] == 1 || g_Maze[i][j] == 2)
+			if(g_Maze[i][j].type == 1 || g_Maze[i][j].type == 2)
 			{
 				printf("\033[31m"); //设置字体颜色。
-				printf("%-2d", g_Maze[i][j]);
+				printf("%-2d", g_Maze[i][j].type);
 				printf("\033[m"); //重置。
 			}
-			else if(g_Maze[i][j] == 3 || g_Maze[i][j] == 4)
+			else if(g_Maze[i][j].type == 3 || g_Maze[i][j].type == 4 || g_Maze[i][j].type == 5)
 			{
 				printf("\033[41m"); //设置字体颜色。
-				printf("%-2d", g_Maze[i][j]);
+				printf("%-2d", g_Maze[i][j].type);
 				printf("\033[m"); //重置。
 			}
-			else printf("%-2d", g_Maze[i][j]);
+			else printf("%-2d", g_Maze[i][j].type);
 		}
 		printf("\n");
 	}
@@ -298,8 +249,8 @@ void printVisited()
 	{
 		for(int j = 0; j < COL ; j++)
 		{
-			if(visit[i][j] == 2)
-				g_Maze[i][j] = 3;
+			if(g_Maze[i][j].visited == 1)
+				g_Maze[i][j].type = 3;
 
 		}
 	}
@@ -310,8 +261,8 @@ void printVisited()
 	{
 		for(int j = 0; j < COL ; j++)
 		{
-			if(visit[i][j] == 2)
-				g_Maze[i][j] = 1;
+			if(g_Maze[i][j].visited == 1)
+				g_Maze[i][j].type = 1;
 
 		}
 	}
@@ -324,14 +275,14 @@ void printPath()
 	system("clear");
 	for(int i = 0; i < step; i++)
 	{
-		g_Maze[visitNode[i].x][visitNode[i].y] = 3;
+		g_Maze[visitNode[i].x][visitNode[i].y].type = 4;
 	}
 
 	printMaze();
 
 	for(int i = 0; i < step; i++)
 	{
-		g_Maze[visitNode[i].x][visitNode[i].y] = 1;
+		g_Maze[visitNode[i].x][visitNode[i].y].type = 1;
 	}
 	usleep(1000*100);
 
@@ -344,14 +295,28 @@ void printBFSPath()
 	Node node = outNode;
 	while(!(parenNode[node.x][node.y].x == -1 && parenNode[node.x][node.y].y == -1))
 	{
-		g_Maze[node.x][node.y] = 4;
+		g_Maze[node.x][node.y].type = 5;
 		node = parenNode[node.x][node.y];
 	}
-	g_Maze[node.x][node.y] = 4;
+	g_Maze[node.x][node.y].type = 5;
 
 	printMaze();
 }
 
+int isValidNode(Node nextNode)
+{
+	if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
+		return 0;
+
+	if(g_Maze[nextNode.x][nextNode.y].visited == 1)
+		return 0;
+
+	if(g_Maze[nextNode.x][nextNode.y].type == 0)
+		return 0;
+
+	return 1;
+
+}
 
 //初始化基础地图。路和墙间隔分布。
 void initMaze()
@@ -360,15 +325,18 @@ void initMaze()
 	{
 		for(int j = 0; j < COL; j++)
 		{
+			g_Maze[i][j].x = i;
+			g_Maze[i][j].y = j;
+			g_Maze[i][j].visited = 0;
 			//边界都为墙
 			if(i == 0 || i == ROW - 1 || j == 0 || j == COL - 1)
-				g_Maze[i][j] = 0;
+				g_Maze[i][j].type = 0;
 			else
 			{
 				if(i % 2 == 1 && j % 2 == 1)
-					g_Maze[i][j] = 1;
+					g_Maze[i][j].type = 1;
 				else
-					g_Maze[i][j] = 0;
+					g_Maze[i][j].type = 0;
 			}
 		}
 	}
@@ -377,7 +345,7 @@ void initMaze()
 
 
 //0.迷宫要 奇*奇 的矩阵(实际也不定，主要是为了避免两列或两行都是墙)。最外一层是墙。
-//  迷宫生成可以是广度，也可以是深度。 但是 如果是广度的，如果是规律入队，要注意随机出队(或者随机入队，然后先进先出出队)。 深度的要随机入栈(先进后出)。
+//  迷宫随机生成可以是广度，也可以是深度。 但是 如果是广度的，如果是规律入队，要注意随机出队(或者随机入队，然后先进先出出队)。 深度的要随机入栈(先进后出)。
 //1.如何确保生成迷宫一定可用。因为这样路的位置都是互相联通的。所以确保可用。
 //2.如何确定出口，入口。 入口可以从开始生成的点设置。 出口呢？出口也只要在靠近边缘的处的1的墙开洞就行(出入口都可以这么设置)。 
 void creatMaze()
@@ -394,14 +362,16 @@ void creatMaze()
 	//设置迷宫入口。
 	inNode.x = startNode.x - 1;
 	inNode.y = startNode.y;
-	g_Maze[inNode.x][inNode.y] = 1; //设置成路。 入口。
+	g_Maze[inNode.x][inNode.y].type = 1; //设置成路。 入口。
 
 	//设置迷宫出口。
 	outNode.x = ROW - 1;
 	outNode.y =  2*(rand()%(COL/2)) + 1;
-	g_Maze[outNode.x][outNode.y] = 1; //设置成路。
+	g_Maze[outNode.x][outNode.y].type = 1; //设置成路。
 
 	EnQueue(&queue, startNode);
+	g_Maze[startNode.x][startNode.y].visited = 1;
+
 	Node nextNode;
 	//填充地图。 使用的是广度优先搜索型(非递归)。 
 	while(isEmptyQueue(&queue) == 0)
@@ -409,7 +379,6 @@ void creatMaze()
 		//要随机的进行出队。 而不是按照队列先进先出的方式。
 		if(RandDeQueue(&queue, &startNode) == -1)
 			return;
-		visit[startNode.x][startNode.y] = 2; 
 		for(int i = 0; i < 4; i++) //四个方向. 右上左下
 		{
 			switch(i)
@@ -434,19 +403,17 @@ void creatMaze()
 
 			if(nextNode.x <= 0 || nextNode.x >= ROW -1 || nextNode.y <= 0 || nextNode.y >= COL -1)
 				continue;
-			if(visit[nextNode.x][nextNode.y] == 2 || visit[nextNode.x][nextNode.y] == 1)
+			if(g_Maze[nextNode.x][nextNode.y].visited == 1)//已经在队列中或者访问过的就不必再入队。
 				continue;
 			Node midNode;
 			midNode.x = (startNode.x + nextNode.x) /2;
 			midNode.y = (startNode.y + nextNode.y) /2;
-			visit[midNode.x][midNode.y] = 2;
-			g_Maze[midNode.x][midNode.y] = 2;
-			if(visit[nextNode.x][nextNode.y] != 1) //已经在队列中的就不必再入队。
-			{
-				if(EnQueue(&queue, nextNode) == -1)
+			g_Maze[midNode.x][midNode.y].visited = 1;
+			g_Maze[midNode.x][midNode.y].type = 2;
+			if(EnQueue(&queue, nextNode) == -1)
 					return;
-				visit[nextNode.x][nextNode.y] = 1;
-			}
+			g_Maze[nextNode.x][nextNode.y].visited = 1;
+
 		}
 		printMaze();
 		usleep(1000*100);
@@ -460,9 +427,9 @@ void BFS(Node node)
 	Queue queue;
 	initQueue(&queue);
 
-	visit[node.x][node.y] = 2;
-	printVisited();
 	EnQueue(&queue, node);
+	g_Maze[node.x][node.y].visited = 1;
+	printVisited();
 
 	Node nextNode , firstNode;
 	while(isEmptyQueue(&queue) != 1)
@@ -498,21 +465,12 @@ void BFS(Node node)
 				nextNode.y = firstNode.y;
 				break;
 			}
-			if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
+			if(!isValidNode(nextNode))
 				continue;
-
-			if(visit[nextNode.x][nextNode.y] == 2)
-				continue;
-
-			if(g_Maze[nextNode.x][nextNode.y] == 0)
-				continue;
-
-			visit[nextNode.x][nextNode.y] = 2;
-			printVisited();
 			parenNode[nextNode.x][nextNode.y] = firstNode;
 			EnQueue(&queue, nextNode);
-
-
+			g_Maze[nextNode.x][nextNode.y].visited = 1;
+			printVisited();
 		}
 	}
 }
@@ -522,8 +480,11 @@ void DFS(Node node)
 {
 	Stack stack;
 	initStack(&stack);
-	visit[node.x][node.y] = 2;
+
 	pushStack(&stack, node);
+	g_Maze[node.x][node.y].visited = 1;
+
+	printVisited();
 
 	Node topNode;
 
@@ -536,15 +497,15 @@ void DFS(Node node)
 		{
 			popStack(&stack, NULL);
 			step--;
-			printPath();
+			//printPath();
 			continue;
 		}
 
-		//避免已经添加过的节点再添加。 上面的if判断处理过了。
+		//避免已经添加过的节点再添加。 上面的if判断处理过了,这里也可以不必再判断。
 		if(!(visitNode[step-1].x == topNode.x && visitNode[step-1].y == topNode.y))
 			visitNode[step++] = topNode;
 		
-		printPath();
+		//printPath();
 
 		if(topNode.x == outNode.x && topNode.y == outNode.y)
 		{
@@ -580,21 +541,22 @@ void DFS(Node node)
 			if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
 				continue;
 
-			if(visit[nextNode.x][nextNode.y] == 2)
+			if(g_Maze[nextNode.x][nextNode.y].visited == 1)
 				continue;
 
-			if(g_Maze[nextNode.x][nextNode.y] == 0)
+			if(g_Maze[nextNode.x][nextNode.y].type == 0)
 				continue;
 
-			visit[nextNode.x][nextNode.y] = 2;
-			flag = 1;
 			pushStack(&stack, nextNode);
+			g_Maze[nextNode.x][nextNode.y].visited = 1;
+			printVisited();
+			flag = 1;
 		}
 		if(flag == 0)//没有周围的节点。 回溯。
 		{
 			popStack(&stack, NULL);
 			step--;
-			printPath();
+			//printPath();
 		}
 	}
 }
@@ -603,10 +565,8 @@ void DFS(Node node)
 int DFS2(Node node)
 {
 	visitNode[step++] = node;
-	visit[node.x][node.y] = 2;
+	g_Maze[node.x][node.y].visited = 1;
 	printPath();
-
-
 	//printf("node:x %d, y %d\n", node.x, node.y);
 
 	if(node.x == outNode.x && node.y == outNode.y)
@@ -641,13 +601,7 @@ int DFS2(Node node)
 			nextNode.y = node.y;
 			break;
 		}
-		if(nextNode.x < 0 || nextNode.x > ROW -1 || nextNode.y < 0 || nextNode.y > COL -1)
-				continue;
-
-		if(visit[nextNode.x][nextNode.y] == 2)
-				continue;
-
-		if(g_Maze[nextNode.x][nextNode.y] == 0)
+		if(!isValidNode(nextNode))
 			continue;
 
 		if(DFS2(nextNode) != 0) //不成功
@@ -679,14 +633,14 @@ int main()
 	//memset 一般用于 清空的初始化，不用于赋值的初始化。
 	//memset(parenNode , node , sizeof(Node)*COL*ROW);
 	//乖乖的循环初始化。
-	for(int i = 0; i < ROW -1; i++)
+	for(int i = 0; i < ROW; i++)
 	{
-		for (int j = 0; j < COL -1; j++)
+		for (int j = 0; j < COL; j++)
 		{
 			parenNode[i][j] = node; //可以直接赋值。 不行的话，直接用memcpy。
-			g_Maze[i][j] = 1;
 		}
 	}
+
 	
 	 hideCursor();
 	 system("clear");
@@ -696,11 +650,12 @@ int main()
 	 
 
 	 clearVisit();
+	 DFS(inNode);
+	 printPath();
+
+	 clearVisit();
 	 DFS2(inNode);
 	 printPath();
-	// clearVisit();
-	// DFS2(inNode);
-	// printPath();
 
 	 clearVisit();
 	 BFS(inNode);
