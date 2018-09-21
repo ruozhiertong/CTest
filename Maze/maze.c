@@ -193,13 +193,19 @@ void gotoxy(int x, int y)
 			printf("\033[%d;%dH",y, x);
 	#endif
 }
-void hideCursor()
+void showCursor(int show)
 {
 	#if (defined _WIN32) || (defined WIN32)
-		CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
+		if(show)
+			CONSOLE_CURSOR_INFO cursor_info = { 1, 1 };
+		else
+			CONSOLE_CURSOR_INFO cursor_info = { 1, 0 };
 		SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
 	#else
-		printf("\033[?25l");
+		if(show)
+			printf("\033[?25h");
+		else
+			printf("\033[?25l");
 	#endif
 }
 
@@ -642,7 +648,7 @@ int main()
 	}
 
 	
-	 hideCursor();
+	 showCursor(0);
 	 system("clear");
 	 srand((int)time(NULL));
 	 initMaze();
@@ -660,6 +666,9 @@ int main()
 	 clearVisit();
 	 BFS(inNode);
 	 printBFSPath();
+
+	 //恢复光标
+	 showCursor(1);
 
 
 	/*

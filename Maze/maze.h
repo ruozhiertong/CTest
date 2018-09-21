@@ -80,7 +80,7 @@ int peekStack(Stack * stack, Node *node);
 
 
 void gotoxy(int x, int y);
-void hideCursor();
+void showCursor(int show);
 
 
 
