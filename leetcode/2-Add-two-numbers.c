@@ -93,13 +93,14 @@ struct ListNode* addTwoNumbers(struct ListNode* l1, struct ListNode* l2)
 	int a, b;
 	int carry = 0; //进 1.
 
-	while(tmpL1 && tmpL2)
+	//优化逻辑，不用再后续对tmpL1  tmpL2 循环。
+	while(tmpL1 || tmpL2)
 	{
 		struct ListNode *node = (struct ListNode*)malloc(sizeof(struct ListNode));
 		node->next = NULL;
 
-		a = tmpL1->val;
-		b = tmpL2->val;
+		a = tmpL1? tmpL1->val:0;
+		b = tmpL2? tmpL2->val:0;
 		
 		if(a + b  + carry >= 10)
 		{
@@ -122,67 +123,10 @@ struct ListNode* addTwoNumbers(struct ListNode* l1, struct ListNode* l2)
 			last->next = node;
 			last = node;
 		}
+		if(tmpL1)
+			tmpL1 = tmpL1->next;
 
-		tmpL1 = tmpL1->next;
-		tmpL2 = tmpL2->next;
-	}
-
-	while(tmpL1)
-	{
-		struct ListNode *node = (struct ListNode*)malloc(sizeof(struct ListNode));
-		node->next = NULL;
-		if(tmpL1->val +  carry >= 10)
-		{
-			node->val = tmpL1->val  + carry  - 10;
-			carry = 1;
-		}
-		else
-		{
-			node->val = tmpL1->val + carry;
-			carry = 0;
-		}
-
-		if(resultList == NULL)
-		{
-			resultList = node;
-			last = node;
-		}
-		else
-		{
-			last->next = node;
-			last = node;
-		}
-
-		tmpL1 = tmpL1->next;
-
-	}
-
-	while(tmpL2)
-	{
-		struct ListNode *node = (struct ListNode*)malloc(sizeof(struct ListNode));
-		node->next = NULL;
-		if(tmpL2->val +  carry >= 10)
-		{
-			node->val = tmpL2->val  + carry  - 10;
-			carry = 1;
-		}
-		else
-		{
-			node->val = tmpL2->val + carry;
-			carry = 0;
-		}
-
-		if(resultList == NULL)
-		{
-			resultList = node;
-			last = node;
-		}
-		else
-		{
-			last->next = node;
-			last = node;
-		}
-		tmpL2 = tmpL2->next;
+		tmpL2 = tmpL2?tmpL2->next:tmpL2;
 	}
     
     if(carry == 1)
