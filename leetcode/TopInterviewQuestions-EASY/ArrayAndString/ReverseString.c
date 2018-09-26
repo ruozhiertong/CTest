@@ -35,7 +35,7 @@ char* reverseString(char* s)
 	return s;
 }
 
-//方法2：从尾部循环到首部。
+//方法2：从尾部循环到首部。不过leetcode OJ不接受新malloc。
 char* reverseString2(char* s) 
 {
 	int len = strlen(s);
