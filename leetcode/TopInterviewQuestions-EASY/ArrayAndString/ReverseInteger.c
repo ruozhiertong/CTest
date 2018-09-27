@@ -20,7 +20,7 @@ Output: 21
 
 */
 //注意溢出值的计算。
-//方式1 用long存储结果，判断是否[−2^31,  2^31 − 1]。注意数值边界情况(卡在这个上面很久)。
+//方式1 用long存储结果，判断是否[−2^31,  2^31 − 1]。注意数值边界情况(卡在这个上面很久，主要是思考的角度复杂化了，用补码的形式去考虑了)。
 //方式2 用INT_MAX 判断
 int reverse(int x) 
 {
@@ -37,19 +37,30 @@ int reverse(int x)
 		input /= 10;
 	}
 
-	if(symbol == -1)
-    {
-        if(result > 0x7fffffff) //2^31
-            return 0;
-        
-    }
-	else
-    {
-        if(result >= 0x7fffffff) // 2^31-1
-        return 0;
-    }
-		
 
+	// if(symbol == -1)
+ //    {
+ //        if(result > 0x7fffffff) //-2^31
+ //            return 0;
+        
+ //    }
+	// else
+ //    {
+ //        if(result >= 0x7fffffff) // 2^31-1
+ //        return 0;
+ //    }
+    //都按照字面值去考虑，此时是绝对值，且是long，因此不用考虑内存中的二进制表示(补码)。
+    //result为绝对值。如果超出2^31 -1 ， 2^31，就溢出。
+    if(symbol == 1)
+    {
+        if(result > 0x7fffffff) //max 2^31 -1
+            return 0;
+    }
+    else
+    {
+        if(result  > 0x80000000) // min 绝对值 2^31
+            return 0;
+    }
 	return result*symbol;
 }
 
