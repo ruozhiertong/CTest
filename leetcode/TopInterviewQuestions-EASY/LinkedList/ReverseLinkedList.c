@@ -81,7 +81,7 @@ struct ListNode* reverseList2(struct ListNode* head)
 	return node1;
 }
 
-//更简单的迭代。
+//更简单的迭代。O(n)
 struct ListNode* reverseList3(struct ListNode* head) {
     struct ListNode *curNode = head;
     struct ListNode *prevNode = NULL;
