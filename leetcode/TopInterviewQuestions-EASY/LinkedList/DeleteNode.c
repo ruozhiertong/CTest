@@ -37,7 +37,7 @@ Do not return anything from your function.
  //这样处理还是比较巧妙的。将删除的node转为下一个node。
 void deleteNode(struct ListNode* node) 
 {
-	if(node->next == NULL)
+	if(node->next == NULL) //node 最后的节点。 还是有问题，应该还要设置前一个pre->next = NULL. 所以题目要求不是最后的节点。
 	{
 		free(node);
 		node = NULL;
@@ -48,8 +48,5 @@ void deleteNode(struct ListNode* node)
 		struct ListNode* temp = node->next;
 		node->next = node->next->next;
 		free(temp);
-
 	}
-	
-    
 }
