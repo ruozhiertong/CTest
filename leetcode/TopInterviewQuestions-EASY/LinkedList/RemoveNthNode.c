@@ -27,6 +27,7 @@ Could you do this in one pass?
  */
  //方法1；比较愚笨的，two pass。先计算出总节点数m ,然后顺序遍历到第 m-n+ 1 个，删除之。
  //方法2： one pass。
+ //one pass.
 struct ListNode* removeNthFromEnd(struct ListNode* head, int n) 
 {
 	 struct ListNode *p1 = head;
