@@ -22,7 +22,7 @@ Explanation: In this case, no transaction is done, i.e. max profit = 0.
 */
 
 //求最大的收益。
-//使用DP思想。
+//使用DP思想。关键找到 状态转移方程。
 //d[i]代表[0,i]内交易股票的最大收益 minPrice表示［0，i）之间价格的最小值
 //状态转移方程 dp[i] = max(dp[i-1],prices[i]-minPrice)
 int maxProfit(int* prices, int pricesSize) 
