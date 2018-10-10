@@ -54,6 +54,7 @@ int maxSubArray(int* nums, int numsSize) {
 //方法2：使用DP思想。
 //https://leetcode.com/explore/interview/card/top-interview-questions-easy/97/dynamic-programming/566/discuss/20193/DP-solution-and-some-thoughts
 //非常巧妙的想法。dp[i] 表示以 nums[i]为结尾的集合的最大值的那个集合。
+//关键的 状态转移方程 dp[i] = nums[i] + (dp[i -1] > 0? dp[i -1]: 0) ， 如果知道用动归，那么关键要找出子问题的结构。
 int maxSubArray(int* nums, int numsSize) 
 {
 	int *dp = (int *)malloc(sizeof(int)* numsSize);
