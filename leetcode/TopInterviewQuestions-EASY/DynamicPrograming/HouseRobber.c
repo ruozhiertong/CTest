@@ -28,7 +28,7 @@ int rob(int* nums, int numsSize)
 {
 	if(numsSize == 1)
 		return nums[0];
-	
+
 	int *dp = (int *)malloc(sizeof(int) * numsSize);
 
 	dp[0] = nums[0];
@@ -42,7 +42,8 @@ int rob(int* nums, int numsSize)
 	{
 		dp[i] = dp[i-1] > dp[i-2] + nums[i] ? dp[i-1]:dp[i-2] + nums[i];
 	}
-
-	return dp[numsSize - 1];
+	int res = dp[numsSize - 1];
+	free(dp);
+	return res;
     
 }             
