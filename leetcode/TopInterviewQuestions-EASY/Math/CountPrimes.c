@@ -34,8 +34,7 @@ int countPrimes(int n)
 }
 
 
-//高效率
-
+//效率高的做法。
 int countPrimes(int n){
     if(n<=2)
         return 0;
