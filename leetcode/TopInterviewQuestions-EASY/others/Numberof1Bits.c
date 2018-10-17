@@ -32,6 +32,6 @@ int hammingWeight(int n)
 
 int main()
 {
-    printf("%d\n",hammingWeight(1));
+    printf("%d\n",hammingWeight(128));
     return 1;
 }
